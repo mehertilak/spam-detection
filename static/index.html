@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spam Detection Service</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin-top: 50px;
+        }
+        .result-box {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 5px;
+            display: none;
+        }
+        .spam {
+            background-color: #ffebee;
+            border: 1px solid #ffcdd2;
+        }
+        .ham {
+            background-color: #e8f5e9;
+            border: 1px solid #c8e6c9;
+        }
+        .confidence-bar {
+            height: 20px;
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+        .loading {
+            display: none;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4">Spam Detection Service</h1>
+        
+        <div class="card">
+            <div class="card-body">
+                <form id="messageForm">
+                    <div class="mb-3">
+                        <label for="message" class="form-label">Enter your message:</label>
+                        <textarea class="form-control" id="message" rows="4" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Check Message</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="loading text-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+
+        <div id="resultBox" class="result-box">
+            <h4 class="mb-3">Analysis Result</h4>
+            <p><strong>Prediction:</strong> <span id="prediction"></span></p>
+            <p><strong>Confidence:</strong> <span id="confidence"></span></p>
+            <div class="confidence-bar progress">
+                <div id="confidenceBar" class="progress-bar" role="progressbar"></div>
+            </div>
+        </div>
+
+        <div class="mt-4">
+            <h5>Example Messages to Try:</h5>
+            <div class="list-group">
+                <button class="list-group-item list-group-item-action" onclick="fillExample(this)">Hi, can we reschedule our meeting to tomorrow?</button>
+                <button class="list-group-item list-group-item-action" onclick="fillExample(this)">CONGRATULATIONS! You've won $1000! Click here to claim now!</button>
+                <button class="list-group-item list-group-item-action" onclick="fillExample(this)">Your package delivery has failed. Click here to reschedule.</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('messageForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const message = document.getElementById('message').value;
+            const loadingDiv = document.querySelector('.loading');
+            const resultBox = document.getElementById('resultBox');
+            
+            // Show loading spinner
+            loadingDiv.style.display = 'block';
+            resultBox.style.display = 'none';
+            
+            try {
+                const response = await fetch('http://localhost:5000/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: message })
+                });
+                
+                const result = await response.json();
+                
+                // Update result box
+                resultBox.className = 'result-box ' + (result.is_spam ? 'spam' : 'ham');
+                document.getElementById('prediction').textContent = result.prediction;
+                document.getElementById('confidence').textContent = (result.confidence * 100).toFixed(2) + '%';
+                
+                // Update confidence bar
+                const confidenceBar = document.getElementById('confidenceBar');
+                confidenceBar.style.width = (result.confidence * 100) + '%';
+                confidenceBar.className = 'progress-bar ' + 
+                    (result.is_spam ? 'bg-danger' : 'bg-success');
+                
+                // Show result
+                resultBox.style.display = 'block';
+            } catch (error) {
+                alert('Error: ' + error.message);
+            } finally {
+                loadingDiv.style.display = 'none';
+            }
+        });
+
+        function fillExample(button) {
+            document.getElementById('message').value = button.textContent;
+        }
+    </script>
+</body>
+</html>
